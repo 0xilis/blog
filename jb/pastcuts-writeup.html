@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+a {
+    text-decoration: none;
+}
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: black;
+    color: lightgreen;
+  }
+}
+@media (prefers-color-scheme: light) {
+    /*
+    light mode. not used atm but just in case i want to ever add a light mode to my site
+    */
+  body {
+    background-color: black;
+    color: lightgreen;
+  }
+}
+
+.site-nav {
+    border-radius:10px;
+    display: flex;
+    background: #252a34;
+    color: white;
+    padding: 1em;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: bold;
+}
+body {
+    font-family: Arial, Helvetica, sans-serif;
+}
+.githublink {
+    background: linear-gradient(to right, royalblue, royalblue 50%, lightblue 50%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-size: 200% 100%;
+    background-position: 100%;
+    transition: background-position 275ms ease;
+    /* 
+    The above code is imo really cool, and looks really solid
+    i must confess, however: i looked up how to do it, and the tut is from here https://css-tricks.com/4-ways-to-animate-the-color-of-a-text-link-on-hover/#:~:text=To%20change%20the%20link%20fill%20color%2C%20set%20the,element%20to%20complete%20the%20text%20effect%20on%20hover%3A
+    */
+    color: lightblue;
+    text-align: right;
+}
+.githublink:hover {
+    color: royalblue;
+    background-position: 0 100%;
+}
+</style>
+</head>
+<body>
+    <nav class="site-nav">Snoolie's Blog<a class="githublink" href="https://github.com/0xilis">‎ ‎ GitHub</a></a></nav>
+    &nbsp;
+    <h1 id="pastcuts">Pastcuts</h1>
+<h3 id="creating-pastcuts-1-0">Creating Pastcuts 1.0</h3>
+<p>So we need to figure out what we need to hook beforehand. Back when shortcuts were shared as unsigned .shortcut files, I remember you could pull a shortcut file (which is just a plist) and modify it to have a lower WFWorkflowMinimumClientVersion, and boom import. Even if importing has been disabled, those unsigned shortcut files are still in use behind the scenes when importing shortcuts from iCloud in iOS 13/14 (you can even call the icloud API to receive the unsigned file if you want, ex links like these <code>https://www.icloud.com/shortcuts/8d4e206d568d4aadb624b2a6191a3771</code> have this API <code>https://www.icloud.com/shortcuts/api/records/8d4e206d568d4aadb624b2a6191a3771</code> in which contain a link to the signed shortcut for iOS 15+ and unsigned for iOS 14-), so that value must be in use somewhere. Shortcuts on iOS 13+ differs greatly behind the scenes from iOS 12-, with a lot of it being in iOS itself rather than the app - more specifically, ContentKit.framework, ActionKit.framework, and (the most important) WorkflowKit.framework. First let&#39;s understand what we need to hook. Thankfully shortcuts has a built-in action that makes this easy for us: View Content Graph of (x). Make a shortcut to get all shortcuts, choose list action, then view content graph. Run and choose a shortcut, and View Content graph should appear. Tap on the shortcut&#39;s name, then Shortcut. We can see 5 items - WFWorkflowReference, Shortcut, WFImage, WFWorkflowRecord, and NSString. We&#39;re going to modify WFWorkflowRecord. Let&#39;s take a look at the header - <a href="https://headers.cynder.me/index.php?sdk=ios/13.7&amp;fw=/PrivateFrameworks/WorkflowKit.framework&amp;file=%2FHeaders%2FWFWorkflowRecord.h">https://headers.cynder.me/index.php?sdk=ios/13.7&amp;fw=/PrivateFrameworks/WorkflowKit.framework&amp;file=%2FHeaders%2FWFWorkflowRecord.h</a>. Oooo, NSString *minimumClientVersion - that sounds useful! Just hook minimumClientVersion in WFWorkflowRecord, and make it return NSString of 1. Boom - You just created Pastcuts 1.0!</p>
+<h3 id="pastcuts-1-1-2-">Pastcuts 1.1.2+</h3>
+<p>Okay, so, what&#39;s wrong here? Well, in 1.2 I wanted Pastcuts to convert shortcut actions when importing. I realized that my logic was bad. Why? Well, we&#39;re hooking minimumClientVersion in EVERY shortcut loaded. This might be bad for performance / battery, and while we&#39;re not doing anything that can go wrong that much, once we get to hooking actions, if we make one mistake, not just that shortcut gets affected but EVERY shortcut gets affected, so it&#39;s pretty dangerous as well. So, let&#39;s just switch to hooking (also in WorkflowKit) WFSharedShortcut&#39;s workflowRecord instead. Let&#39;s do id rettype = %orig;. Then, [rettype setMinimumClientVersion:@&quot;1&quot;]; to make minimumClientVersion 1 in it. Then just return rettype, and boom, now we only hook when a shortcut is imported, making us MUCH more optimized! I was planning on waiting for Pastcuts 1.2, but I decided this optimization is enough to deserve a quick 1.1.2 release.</p>
+<h3 id="pastcuts-1-2-starting-to-get-good-we-re-actually-converting-actions-">Pastcuts 1.2 (starting to get good - we&#39;re actually converting actions)!</h3>
+<p>Finish latr</p>
+</body>
+</html>
