@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: black;
+    color: lightgreen;
+  }
+}
+@media (prefers-color-scheme: light) {
+    /*
+    light mode. not used atm but just in case i want to ever add a light mode to my site
+    */
+  body {
+    background-color: black;
+    color: lightgreen;
+  }
+}
+.site-nav {
+    border-radius:10px;
+    display: flex;
+    background: #252a34;
+    color: white;
+    padding: 1em;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: bold;
+}
+
+.mypfp {
+    border-radius:100px;
+    max-width: 10%;
+    max-width: 10%;
+}
+body {
+    font-family: Arial, Helvetica, sans-serif;
+}
+a {
+    text-decoration: none;
+}
+.linksNstuff {
+      background: linear-gradient(to right, royalblue, royalblue 50%, lightblue 50%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-size: 200% 100%;
+    background-position: 100%;
+    transition: background-position 275ms ease;
+    color: lightblue;
+    text-align: right;
+}
+.linksNstuff:hover {
+    color: royalblue;
+    background-position: 0 100%;
+}
+.site-home-link {
+    color: white;
+}
+</style>
+</head>
+<body>
+<nav class="site-nav"><a href="https://0xilis.github.io/blog" class="site-home-link">Snoolie's Blog</a>‎ ‎ <a class="linksNstuff" href="https://0xilis.github.io/blog/shortcuts">Deep Into Shortcuts</a> ‎ ‎ <a class="linksNstuff" href="https://github.com/0xilis">GitHub</a></a></nav>
+&nbsp;
+<h1 id="extract-archive-arbitrary-write-bug">Extract Archive Arbitrary Write bug</h1>
+<p>Works on iOS 13, 14, and (at the time of writing) 15. Well, somewhat iOS 15. Found by me, Zachary Keffaber (zachary7829)</p>
+<h3 id="ios-15-macos-monterey-mitigation">iOS 15 / macOS Monterey Mitigation</h3>
+<p>The bug is still technically there in iOS 15, but much more limited. Thanks to iOS 15 changes: Built-in shortcut actions may have different privileges than the shortcuts app itself now, so even though Shortcuts has write access to directories like <code>/var/mobile/Library/WebClips</code>, the actions do not and can only write to iCloud~is~workflow~my~workflows (tmk). Creating a symlink to a directory shortcuts has access to from iCloud~is~workflow~my~workflows does not work either. With this restriction in mind, there is still one bad thing you can do with this: write to iCloud~is~workflow~my~workflows without needing the Save File permission. However you can only do inital write, not overwrite, and even then it&#39;s limited to only initial write folders.</p>
+<h3 id="the-bug">The bug</h3>
+<p>Extract archive allows you to do dot notation in the name of the archive. You can create a zip, use set name to <code>../../../../../../../../../../private/var/mobile/Library/WebClips/testingzip.zip</code>, use extract archive and create a folder named &quot;testingzip&quot; to the WebClips directory. This will be auto-deleted upon shortcut ending execution, however if the shortcut doesn&#39;t end execution normally (ex crash bug or user closes app before shortcut finishes) it will stay. The Make GIF from Video action has a similar bug, but unlike Extract Archive deletes the files upon finishing the GIF. While you can&#39;t use this to overwrite or write files themselves rather than folders that contain files, since .webclip is basically just a folder anyway it works. Example: <a class="linksNstuff" href="https://www.icloud.com/shortcuts/6df21b1b953747cda16752f838377bd9">https://www.icloud.com/shortcuts/6df21b1b953747cda16752f838377bd9</a></p>
+<h3 id="special-thanks">Special Thanks</h3>
+<p>Special thanks to the Shortcuts Hacking discord.</p>
+</body>
+</html>

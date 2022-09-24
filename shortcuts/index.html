@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+a {
+    text-decoration: none;
+}
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: black;
+    color: lightgreen;
+  }
+}
+@media (prefers-color-scheme: light) {
+    /*
+    light mode. not used atm but just in case i want to ever add a light mode to my site
+    */
+  body {
+    background-color: black;
+    color: lightgreen;
+  }
+}
+.site-nav {
+    border-radius:10px;
+    display: flex;
+    background: #252a34;
+    color: white;
+    padding: 1em;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: bold;
+}
+
+.mypfp {
+    border-radius:100px;
+    max-width: 10%;
+    max-width: 10%;
+}
+body {
+    font-family: Arial, Helvetica, sans-serif;
+}
+.githublink {
+    background: linear-gradient(to right, royalblue, royalblue 50%, lightblue 50%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-size: 200% 100%;
+    background-position: 100%;
+    transition: background-position 275ms ease;
+    /* 
+    The above code is imo really cool, and looks really solid
+    i must confess, however: i looked up how to do it, and the tut is from here https://css-tricks.com/4-ways-to-animate-the-color-of-a-text-link-on-hover/#:~:text=To%20change%20the%20link%20fill%20color%2C%20set%20the,element%20to%20complete%20the%20text%20effect%20on%20hover%3A
+    */
+    color: lightblue;
+    text-align: right;
+}
+.githublink:hover {
+    color: royalblue;
+    background-position: 0 100%;
+}
+.site-home-link {
+    color: white;
+}
+</style>
+</head>
+<body>
+    <nav class="site-nav"><a href="https://0xilis.github.io/blog" class="site-home-link">Snoolie's Blog</a><a class="githublink" href="https://github.com/0xilis">‎ ‎ GitHub</a></a></nav>
+    &nbsp;
+    <center><h1>Deep Into Shortcuts</h1>
+    <p><strong>Extract Archive Arbitrary Write Vulnerability</strong></p>
+    <p>Writeup of awesome vulnerability with the extract archive action that allows you to arbitrary write to directories that Shortcuts has access to</p>
+
+    <p><button onclick="window.location.href = 'https://0xilis.github.io/blog/shortcuts/ExtractArchiveArbitraryWrite';">Extract Archive Arbitrary Write</button></p>
+
+    <p><strong>Shortcuts File Format Documentation</strong></p>
+    <p>Introduction to the Shortcuts File Format</p>
+
+    <p><button onclick="window.location.href = 'https://0xilis.github.io/blog/shortcuts/fileformat';">File Format Documentation</button></p>
+
+    <p><strong>iOS 15.0-15.3.1 Hide Actions Vulnerability</strong></p>
+    <p>Leet vuln to hide actions when viewing the shortcut, but having them still run. iOS 15.0-15.3.1 and macOS 12.0-12.? affected, watchOS untested. I did a pretty nice talk about it on twitter so I'm linking to it here for the moment.</p>
+
+    <p><button onclick="window.location.href = 'https://twitter.com/i/status/1503493745085399040';">Hide Actions Vulnerability</button></p>
+
+    <p><strong>CVE-2021-30763</strong></p>
+    <p>ActionKit vuln, Internet Permission bypass for shortcuts. While it's claimed to be fixed in iOS 14.7, only some actions were patched, it's still possible to exploit it on 14.8.1 by using different actions ex Make Archive. Fully patched in iOS 15.0. The vuln here is simply just using https:/ or https: instead of https:// lol.</p><center>
+</body>
+</html>

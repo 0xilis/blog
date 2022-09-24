@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+a {
+    text-decoration: none;
+}
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: black;
+    color: lightgreen;
+  }
+}
+@media (prefers-color-scheme: light) {
+    /*
+    light mode. not used atm but just in case i want to ever add a light mode to my site
+    */
+  body {
+    background-color: black;
+    color: lightgreen;
+  }
+}
+
+.site-nav {
+    border-radius:10px;
+    display: flex;
+    background: #252a34;
+    color: white;
+    padding: 1em;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: bold;
+}
+
+.mypfp {
+    border-radius:100px;
+    max-width: 10%;
+    max-width: 10%;
+}
+body {
+    font-family: Arial, Helvetica, sans-serif;
+}
+.githublink {
+    background: linear-gradient(to right, royalblue, royalblue 50%, lightblue 50%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-size: 200% 100%;
+    background-position: 100%;
+    transition: background-position 275ms ease;
+    /* 
+    The above code is imo really cool, and looks really solid
+    i must confess, however: i looked up how to do it, and the tut is from here https://css-tricks.com/4-ways-to-animate-the-color-of-a-text-link-on-hover/#:~:text=To%20change%20the%20link%20fill%20color%2C%20set%20the,element%20to%20complete%20the%20text%20effect%20on%20hover%3A
+    */
+    color: lightblue;
+    text-align: right;
+}
+.githublink:hover {
+    color: royalblue;
+    background-position: 0 100%;
+}
+</style>
+</head>
+<body>
+    <nav class="site-nav">Snoolie's Blog<a class="githublink" href="https://github.com/0xilis">‎ ‎ GitHub</a></a></nav>
+    &nbsp;
+    <center><img class="mypfp" src="https://avatars.githubusercontent.com/u/109871561?v=4">
+    <h1>Snoolie K</h1>
+    <p><strong>iOS Programmer.</strong></center></p>
+    <p><center>Hello! Welcome to my site. I mainly program in Objective-C / C, and have knowledge of PHP/JS/Python along with a <i>tiny</i> bit of knowledge of some other languages ex C++, Java, and x86 assembly. I am currently learning Java. Check out some of my projects below:</center></p>
+
+    &nbsp;
+    &nbsp;
+    &nbsp;
+    &nbsp;
+    &nbsp;
+
+    <small>library for short2butter and butter2short pouring</a></small>
+    <p><center><button onclick="window.location.href = 'https://0xilis.github.io/repo';">Pastcuts</button></p>
+
+    <small>Jailbreak tweak to import iOS 15 shortcuts on iOS 13/14</a></small>
+    <p><center><button onclick="window.location.href = 'https://0xilis.github.io/blog/shortcuts';">Deep Into Shortcuts</button></p>
+
+    <small>Section of blog dedicated to the Shortcuts application.</a></small>
+</body>
+</html>

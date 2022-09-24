@@ -1,0 +1,136 @@
+<html>
+<head>
+<style>
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: black;
+    color: lightgreen;
+  }
+}
+@media (prefers-color-scheme: light) {
+    /*
+    light mode. not used atm but just in case i want to ever add a light mode to my site
+    */
+  body {
+    background-color: black;
+    color: lightgreen;
+  }
+}
+.site-nav {
+    border-radius:10px;
+    display: flex;
+    background: #252a34;
+    color: white;
+    padding: 1em;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: bold;
+}
+
+.mypfp {
+    border-radius:100px;
+    max-width: 10%;
+    max-width: 10%;
+}
+body {
+    font-family: Arial, Helvetica, sans-serif;
+}
+a {
+    text-decoration: none;
+}
+.linksNstuff {
+      background: linear-gradient(to right, royalblue, royalblue 50%, lightblue 50%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-size: 200% 100%;
+    background-position: 100%;
+    transition: background-position 275ms ease;
+    color: lightblue;
+    text-align: right;
+}
+.linksNstuff:hover {
+    color: royalblue;
+    background-position: 0 100%;
+}
+.site-home-link {
+    color: white;
+}
+</style>
+</head>
+<body>
+<nav class="site-nav"><a href="https://0xilis.github.io/blog" class="site-home-link">Snoolie's Blog</a>‎ ‎ <a class="linksNstuff" href="https://0xilis.github.io/blog/shortcuts">Deep Into Shortcuts</a> ‎ ‎ <a class="linksNstuff" href="https://github.com/0xilis">GitHub</a></a></nav>
+&nbsp;
+<h1 id="shortcuts-file-format-documentation">Shortcuts File Format Documentation</h1>
+<p>Credits:</p>
+<p>Thanks to:</p>
+<ul>
+<li>u/Shoculad (Learned about iCloud API from them)</li>
+<li>Various people from r/Shortcuts and RoutineHub discord</li>
+<li>sebj for <a class="linksNstuff" href="https://github.com/sebj/iOS-Shortcuts-Reference">https://github.com/sebj/iOS-Shortcuts-Reference</a></li>
+<li>ActuallyZach (Magic Variables)</li>
+<li>marcusrbrown (Re-enabling shorcut importing on iOS 13/14)</li>
+</ul>
+<p>(This guide is mainly intended for iOS 13/14, however there is still some stuff here that applies to iOS 15 and iOS 12-)</p>
+<h3 id="how-shortcuts-are-stored">How shortcuts are stored</h3>
+<p>On iOS 13, shortcuts are stored in /var/mobile/Library/Shortcuts/Shortcuts.realm. However, iOS 14 changes this to be in Shortcuts.sqlite. You don&#39;t need to worry about this at the moment though - what you do need to understand however is the .shortcut format. On iOS 12/13/14 devices, a shortcut that&#39;s stored on a device can be exported as an unsigned .shortcut file by using the Get My Shortcuts action (You can use a Save File action to save the output). iOS 15 is slightly different, however: you can&#39;t export shortcuts on device as unsigned shortcuts using Get My Shortcuts, only signed. (Shortcuts in iOS 15 are signed with Apple Encrypted Archives - learn more about them here: <a class="linksNstuff" href="https://man.cameronkatri.com/macOS/aea">https://man.cameronkatri.com/macOS/aea</a>). You can, however, get a unsigned .shortcut from the iCloud API. Let&#39;s upload a shortcut to iCloud, and imagine our link is <a class="linksNstuff" href="https://www.icloud.com/shortcuts/77dfe31578ac4f6fb084ebb418b34a49">https://www.icloud.com/shortcuts/77dfe31578ac4f6fb084ebb418b34a49</a>. Change /shortcuts/ to /shortcuts/api/records/ (<a class="linksNstuff" href="https://www.icloud.com/shortcuts/api/records/77dfe31578ac4f6fb084ebb418b34a49">https://www.icloud.com/shortcuts/api/records/77dfe31578ac4f6fb084ebb418b34a49</a>). The value for fields.shortcut.value.downloadURL should be the URL for the unsigned .shortcut (Note: If you opened in Safari, change \/ to / in the URL). After getting the unsigned .shortcut, rename this to a plist and you should be able to easily open this in Xcode (or, use set name to rename to something.plist with Do Not Include File Extension on, and Get Text from that).</p>
+<p>So, now lets go over the keys:</p>
+<ul>
+<li>WFWorkflowClientVersion - This is the number that represents the client version that the shortcut was shared on.</li>
+<li>WFWorkflowImportQuestions - The import questions for the shortcut</li>
+<li>WFWorkflowName - Name of the shortcut</li>
+<li>WFWorkflowMinimumClientVersion - The minimum client version the shortcut can be imported in.</li>
+<li>WFWorkflowMinimumClientVersionString - Same thing as WFWorkflowMinimumClientVersion but a string.</li>
+<li>WFWorkflowIcon - The Icon</li>
+<li>WFWorkflowInputContentItemClasses - What the shortcut accepts as input</li>
+<li>WFWorkflowTypes - Hard to explain, use sebj&#39;s documentation instead if you want this explained, but you likely won&#39;t touch this anyway</li>
+<li>WFWorkflowActions - this is the big one that matters. It&#39;s an array of the different shortcut actions.</li>
+</ul>
+<h3 id="actions">Actions</h3>
+<p>We&#39;re going to have a shortcut with a comment action that contains &quot;Chocolate&quot;. Let’s take a look at a simple comment action:</p>
+<pre><code><span class="hljs-tag">&lt;<span class="hljs-name">dict</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">key</span>&gt;</span>WFWorkflowActionIdentifier<span class="hljs-tag">&lt;/<span class="hljs-name">key</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">string</span>&gt;</span>is.workflow.actions.comment<span class="hljs-tag">&lt;/<span class="hljs-name">string</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">key</span>&gt;</span>WFWorkflowActionParameters<span class="hljs-tag">&lt;/<span class="hljs-name">key</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">dict</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-name">key</span>&gt;</span>WFCommentActionText<span class="hljs-tag">&lt;/<span class="hljs-name">key</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-name">string</span>&gt;</span>Chocolate<span class="hljs-tag">&lt;/<span class="hljs-name">string</span>&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-name">dict</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">dict</span>&gt;</span>
+</code></pre><p>The value “is.workflow.actions.comment” in the WFWorkflowActionIdentifier indicates that it’s a comment action, and the Chocolate value in the WFCommentActionText key indicates that the Comment action contains the text &quot;Chocolate&quot;.</p>
+<p>Just a warning for magic variables: these contain an invisible character. Be careful not to accidentally remove it. Here’s an example of what it looks like, with the invisible character replaced with &quot;(INVISIBLE CHARACTER)&quot; (Thanks to ActuallyZach for sending me this and helping me figure out where it was!):</p>
+<pre><code><span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">dict</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">key</span>&gt;</span>WFWorkflowActionIdentifier<span class="hljs-tag">&lt;/<span class="hljs-name">key</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">string</span>&gt;</span>is.workflow.actions.gettext<span class="hljs-tag">&lt;/<span class="hljs-name">string</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">key</span>&gt;</span>WFWorkflowActionParameters<span class="hljs-tag">&lt;/<span class="hljs-name">key</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-name">dict</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-name">key</span>&gt;</span>WFTextActionText<span class="hljs-tag">&lt;/<span class="hljs-name">key</span>&gt;</span>
+                <span class="hljs-tag">&lt;<span class="hljs-name">dict</span>&gt;</span>
+                    <span class="hljs-tag">&lt;<span class="hljs-name">key</span>&gt;</span>Value<span class="hljs-tag">&lt;/<span class="hljs-name">key</span>&gt;</span>
+                    <span class="hljs-tag">&lt;<span class="hljs-name">dict</span>&gt;</span>
+                        <span class="hljs-tag">&lt;<span class="hljs-name">key</span>&gt;</span>attachmentsByRange<span class="hljs-tag">&lt;/<span class="hljs-name">key</span>&gt;</span>
+                        <span class="hljs-tag">&lt;<span class="hljs-name">dict</span>&gt;</span>
+                            <span class="hljs-tag">&lt;<span class="hljs-name">key</span>&gt;</span></span><span class="hljs-template-variable">{15, 1}</span><span class="xml"><span class="hljs-tag">&lt;/<span class="hljs-name">key</span>&gt;</span>
+                            <span class="hljs-tag">&lt;<span class="hljs-name">dict</span>&gt;</span>
+                                <span class="hljs-tag">&lt;<span class="hljs-name">key</span>&gt;</span>Aggrandizements<span class="hljs-tag">&lt;/<span class="hljs-name">key</span>&gt;</span>
+                                <span class="hljs-tag">&lt;<span class="hljs-name">array</span>/&gt;</span>
+                                <span class="hljs-tag">&lt;<span class="hljs-name">key</span>&gt;</span>Type<span class="hljs-tag">&lt;/<span class="hljs-name">key</span>&gt;</span>
+                                <span class="hljs-tag">&lt;<span class="hljs-name">string</span>&gt;</span>ExtensionInput<span class="hljs-tag">&lt;/<span class="hljs-name">string</span>&gt;</span>
+                            <span class="hljs-tag">&lt;/<span class="hljs-name">dict</span>&gt;</span>
+                        <span class="hljs-tag">&lt;/<span class="hljs-name">dict</span>&gt;</span>
+                        <span class="hljs-tag">&lt;<span class="hljs-name">key</span>&gt;</span>string<span class="hljs-tag">&lt;/<span class="hljs-name">key</span>&gt;</span>
+                        <span class="hljs-tag">&lt;<span class="hljs-name">string</span>&gt;</span>Shortcut Input (INVISIBLE CHARACTER)<span class="hljs-tag">&lt;/<span class="hljs-name">string</span>&gt;</span>
+                    <span class="hljs-tag">&lt;/<span class="hljs-name">dict</span>&gt;</span>
+                    <span class="hljs-tag">&lt;<span class="hljs-name">key</span>&gt;</span>WFSerializationType<span class="hljs-tag">&lt;/<span class="hljs-name">key</span>&gt;</span>
+                    <span class="hljs-tag">&lt;<span class="hljs-name">string</span>&gt;</span>WFTextTokenString<span class="hljs-tag">&lt;/<span class="hljs-name">string</span>&gt;</span>
+                <span class="hljs-tag">&lt;/<span class="hljs-name">dict</span>&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-name">dict</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-name">dict</span>&gt;</span></span>
+</code></pre><h3 id="importing">Importing</h3>
+<p>On iOS 12, you could just import .shortcuts from files no issue. However, this was disabled on iOS 13. It&#39;s still fairly easy to work around this though - you could have a shortcut that passes a .shortcut file into the Get Link to File action, and it should generate an iCloud link to this .shortcut in which you can import. Similar behavior on iOS 14. (Fun fact: While this is disabled, the code for it is still there: you can actually make a backup, edit a boolean in a plist, restore from said backup and you can import .shortcuts again. Apple actually accidentally enabled it again in iOS 14b1, though quickly realized their mistake and disabled it again.)</p>
+<p>On iOS 15, however, Apple introduced shortcuts signing, as well as removed the special treatment for Get Link to File regarding .shortcut/.wflow files. This means that you need to sign a shortcut file if you want to import it on an iOS 15 device - and no, you can&#39;t do it on device. (Note: There was a way to bypass signing and import unsigned shortcuts files on iOS 15b1, but it was quickly patched.) You need either a Mac or an iOS 12/13/14 device to sign said shortcut file. (To sign on macOS - use the shortcuts CLI tool. To sign on an iOS 12/13/14 device, have a shortcut get the iOS 15 shortcut you want to sign, and use the Get Link to File action to upload to iCloud and sign it. The link to the signed shortcut file should be in fields.signedShortcut.value.downloadURL. However, you <em>could</em> set up a shortcuts signing server if you have a Mac if you really want to - but be aware that if someone uploads a malicious shortcut, Apple could ban it.</p>
+<h3 id="ios-15b1-shortcuts-signing-bypass">iOS 15b1 shortcuts signing bypass</h3>
+<p>On iOS 15b1, Apple forgot to enforce signing to *.wflow files (the old file extension that Workflow used before it became shortcuts, basically the same as the unsigned .shortcut file format) This means you could easily rename a .shortcut to .wflow and import it. Apple patched this in 15b2.</p>
+<h3 id="re-enabling-shortcut-importing-on-ios-13-14-">Re-enabling shortcut importing on iOS 13/14:</h3>
+<p>As I mentioned earlier, while shortcut importing is disabled in iOS 13/14, the code for it is still there. By changing the WFShortcutsFileSharingEnabled boolean to true in Shortcut&#39;s Preferences plist, you can re-enable file importing. It&#39;s /private/var/mobile/Library/Preferences/com.apple.siri.shortcuts.plist if you want to edit it on a jailbroken device, or you could modify /HomeDomain/Library/Preferences/com.apple.siri.shortcuts.plist in a backup.</p>
+</body>
+</html>
