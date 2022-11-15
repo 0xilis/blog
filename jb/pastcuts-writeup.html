@@ -82,5 +82,40 @@ body {
 <p>WFWorkflowActionIdentifier is a string representing the action'd id. To check if the action is a stop action, we just check if the action in the loop's WFWorkflowActionIdentifier is equal to string is.workflow.actions.output.</p>
 <p>If so, I create a mutable copy of the action to modify it. Then I change the WFWorkflowActionIdentifier to equal is.workflow.actions.exit. I then proceed to attempt to get its output and correspond to is.workflow.actions.exit's way.</p>
 <p>If you're unaware of how an action is structured, I <strong>really</strong> recommend creating a shortcut with the action, using the Get My Shortcuts action, Choose from List, and then get file of type com.apple.plist to view the shortcuts unsigned plist. It should give you a good look at how the action works without even needing to look at rev'ing WorkflowKit/ActionKit.</p>
+<p>(Note: That being said, when needed to, I highly recommend learning some basic reverse engineering. I made Pastcuts before I knew anything and just tried a bunch of classes hoping to eventually get it right. Don't do this. That's a ton more effort and rev'ing gives you a much better chance of ensuring what you're hooking is good to hook. I have since and it's been very helpful.)</p>
+<p>Here's an example of this:</p>
+<pre><code class="lang-objc">%hook WFSharedShortcut
+-(id)workflowRecord {
+  id rettype = %orig;
+  [rettype <span class="hljs-string">setMinimumClientVersion:</span>@<span class="hljs-string">"1"</span>];
+  NSArray *origShortcutActions = (NSArray *)[rettype actions];
+  NSMutableArray *newMutableShortcutActions = [origShortcutActions mutableCopy];
+  <span class="hljs-keyword">int</span> shortcutActionsObjectIndex = <span class="hljs-number">0</span>;
+  <span class="hljs-keyword">for</span> (id shortcutActionsObject <span class="hljs-keyword">in</span> origShortcutActions) {
+    <span class="hljs-comment">//this safety check is only needed if you are unaware of in actions it potentially contains more than NSDictionaries.</span>
+    <span class="hljs-keyword">if</span> ([shortcutActionsObject <span class="hljs-string">isKindOfClass:</span>[NSDictionary <span class="hljs-class"><span class="hljs-keyword">class</span>]]){</span>
+      <span class="hljs-keyword">if</span> ([[shortcutActionsObject <span class="hljs-string">objectForKey:</span>@<span class="hljs-string">"WFWorkflowActionIdentifier"</span>] <span class="hljs-string">isEqualToString:</span>@<span class="hljs-string">"is.workflow.actions.output"</span>]) {
+        NSMutableDictionary *mutableShortcutActionsObject = [shortcutActionsObject mutableCopy];
+
+        [mutableShortcutActionsObject <span class="hljs-string">setValue:</span>@<span class="hljs-string">"is.workflow.actions.exit"</span> <span class="hljs-string">forKey:</span>@<span class="hljs-string">"WFWorkflowActionIdentifier"</span>];
+        <span class="hljs-keyword">if</span> ([[[[[mutableShortcutActionsObject <span class="hljs-string">objectForKey:</span>@<span class="hljs-string">"WFWorkflowActionParameters"</span>] <span class="hljs-string">objectForKey:</span>@<span class="hljs-string">"WFOutput"</span>] <span class="hljs-string">objectForKey:</span>@<span class="hljs-string">"Value"</span>] <span class="hljs-string">objectForKey:</span>@<span class="hljs-string">"attachmentsByRange"</span>] <span class="hljs-string">objectForKey:</span>@<span class="hljs-string">"{0, 1}"</span>]) {
+    <span class="hljs-comment">//in iOS 15, if an Exit action has output it's converted into the Output action, so we convert it back</span>
+
+          NSDictionary *actionParametersWFResult = [[NSDictionary alloc] <span class="hljs-string">initWithObjectsAndKeys:</span>@<span class="hljs-string">"placeholder"</span>, @<span class="hljs-string">"Value"</span>, @<span class="hljs-string">"WFTextTokenAttachment"</span>, @<span class="hljs-string">"WFSerializationType"</span>, nil];
+          NSMutableDictionary *mutableActionParametersWFResult = [actionParametersWFResult mutableCopy];
+          [mutableActionParametersWFResult <span class="hljs-string">setValue:</span>[[[[[mutableShortcutActionsObject <span class="hljs-string">objectForKey:</span>@<span class="hljs-string">"WFWorkflowActionParameters"</span>] <span class="hljs-string">objectForKey:</span>@<span class="hljs-string">"WFOutput"</span>] <span class="hljs-string">objectForKey:</span>@<span class="hljs-string">"Value"</span>] <span class="hljs-string">objectForKey:</span>@<span class="hljs-string">"attachmentsByRange"</span>] <span class="hljs-string">objectForKey:</span>@<span class="hljs-string">"{0, 1}"</span>] <span class="hljs-string">forKey:</span>@<span class="hljs-string">"Value"</span>];
+          NSDictionary *actionParameters = [[NSDictionary alloc] <span class="hljs-string">initWithObjectsAndKeys:</span>@<span class="hljs-string">"placeholder"</span>, @<span class="hljs-string">"WFResult"</span>, nil];
+          NSMutableDictionary *mutableActionParameters = [actionParameters mutableCopy];
+          [mutableActionParameters <span class="hljs-string">setValue:</span>mutableActionParametersWFResult <span class="hljs-string">forKey:</span>@<span class="hljs-string">"WFResult"</span>];
+          [mutableShortcutActionsObject <span class="hljs-string">setValue:</span>mutableActionParameters <span class="hljs-string">forKey:</span>@<span class="hljs-string">"WFWorkflowActionParameters"</span>];
+        }
+        newMutableShortcutActions[shortcutActionsObjectIndex] = [[NSDictionary alloc] <span class="hljs-string">initWithDictionary:</span>mutableShortcutActionsObject];
+      }
+    }
+  }
+  <span class="hljs-keyword">return</span> rettype;
+}
+%end
+</code></pre>
 </body>
 </html>
