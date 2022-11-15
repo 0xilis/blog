@@ -77,6 +77,10 @@ body {
 </code></pre>
 <h3 id="pastcuts-1-2-starting-to-get-good-we-re-actually-converting-actions-">Pastcuts 1.2/1.3 (starting to get good - we&#39;re actually converting actions)!</h3>
 <p>Okay, so we can import all Shortcuts imported now. I missed that gallery shortcuts won't be under WFSharedShortcut, so we should also do the same hook for WFGalleryShortcut's workflowRecord as well. Now, even though we can import any action, iOS 13/14 doesn't have every action iOS 15 does, does it? Let's fix that.</p>
-<p>So first off I want to thank u/gluebyte for documenting some of the backwards (in)compatibility of iOS 15. See the post here (placeholder for gluebyte post). Finish latr</p>
+<p>So first off I want to thank u/gluebyte for documenting some of the backwards (in)compatibility of iOS 15. See the post here (placeholder for gluebyte post). Let's start by converting the stop action back to the exit action.</p>
+<p>We need to get the actions, obv. NSArray *origShortcutActions = (NSArray *)[rettype actions];. I also create a mutable copy of the actions as newMutableShortcutActions. Then I proceed to have a for loop to loop through all the actions in origShortcutActions. Actions codewise are very similar to Shortcut's unsigned plist format, so if you're already aware of it this should be fairly easy to understand.</p>
+<p>WFWorkflowActionIdentifier is a string representing the action'd id. To check if the action is a stop action, we just check if the action in the loop's WFWorkflowActionIdentifier is equal to string is.workflow.actions.output.</p>
+<p>If so, I create a mutable copy of the action to modify it. Then I change the WFWorkflowActionIdentifier to equal is.workflow.actions.exit. I then proceed to attempt to get its output and correspond to is.workflow.actions.exit's way.</p>
+<p>If you're unaware of how an action is structured, I <strong>really</strong> recommend creating a shortcut with the action, using the Get My Shortcuts action, Choose from List, and then get file of type com.apple.plist to view the shortcuts unsigned plist. It should give you a good look at how the action works without even needing to look at rev'ing WorkflowKit/ActionKit.</p>
 </body>
 </html>
