@@ -62,7 +62,7 @@ a {
 <nav class="site-nav"><a href="https://0xilis.github.io/blog" class="site-home-link">Snoolie's Blog</a>‎ ‎ <a class="linksNstuff" href="https://0xilis.github.io/blog/shortcuts">Deep Into Shortcuts</a> ‎ ‎ <a class="linksNstuff" href="https://github.com/0xilis">GitHub</a></a></nav>
 &nbsp;
 <h1 id="extract-archive-arbitrary-write-bug">Extract Archive Arbitrary Write bug</h1>
-<p>Works on iOS 13, 14, and (at the time of writing) 15. Well, somewhat iOS 15. Found by me, Zachary Keffaber (zachary7829)</p>
+<p>Works on iOS 13, 14, and (at the time of writing) 15. Well, somewhat iOS 15. Found by me, Snoolie.</p>
 <h3 id="ios-15-macos-monterey-mitigation">iOS 15 / macOS Monterey Mitigation</h3>
 <p>The bug is still technically there in iOS 15, but much more limited. Thanks to iOS 15 changes: Built-in shortcut actions may have different privileges than the shortcuts app itself now, so even though Shortcuts has write access to directories like <code>/var/mobile/Library/WebClips</code>, the actions do not and can only write to iCloud~is~workflow~my~workflows (tmk). Creating a symlink to a directory shortcuts has access to from iCloud~is~workflow~my~workflows does not work either. With this restriction in mind, there is still one bad thing you can do with this: write to iCloud~is~workflow~my~workflows without needing the Save File permission. However you can only do inital write, not overwrite, and even then it&#39;s limited to only initial write folders.</p>
 <h3 id="the-bug">The bug</h3>
