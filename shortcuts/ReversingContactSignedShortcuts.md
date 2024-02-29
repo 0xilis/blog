@@ -1,7 +1,5 @@
 # Reversing Contact Signed Shortcuts
 
-(This document will mainly focus on contact-signed shortcuts; it is a result of my reverse engineering accross months. For the unsigned shortcut format, I have old documentation here: [https://github.com/0xilis/blog/blob/main/shortcuts/fileformat.md](https://github.com/0xilis/blog/blob/main/shortcuts/fileformat.md). It's not written the best but covers basics.).
-
 ### Introduction
 
 About 2 years ago, I made a previous blog about the shortcuts file format. At the time, shortcuts were all unsigned plain plists (although some can also be binary plists).
@@ -10,11 +8,11 @@ Signed Shortcuts were a relatively new concept, and pretty undocumented at the t
 
 At the time, I wasn't that knowledgable about reverse engineering, apple platforms or programming in general really, and as much as I wanted to look into them, I could not. Now however, I have gained a lot more knowledge than previously, and since no one else seems to be looking into shortcuts signing (if someone else is, tell me!) I have decided to look into shortcut signing again. At the time, given the Shortcuts team oversight as well as many other pretty funny oversights ex the permission bypass, the extract archive dot notation vuln, and the hidden action vuln, I assumed that there must have been *some* flaw with it. However after pouring in many painful hours of research, I apologize to the Shortcuts team, because shortcut signing (at least, contact signing, what I have been looking into the most) seems incredibly secure, as well as the importing process.
 
-The main reasons why I wanted to look into shortcuts signing was to get embed-ables to work on-device again somehow, without the need of a Mac, but another big reason was wanting to figure out some way to replicate the signing process on other non-apple platforms such as Linux. Unfortunately, signed shortcuts are made with Apple's closed source, proprietary, and also extremely undocumented and mysterious **Apple Encrypted Archive**. They're also compressed with LZFSE, which while is more documented than AEA, is still also something that I don't know much about. With that being said, it is definitely possible to, with a painful amount of effort, make a tool that contact signs shortcuts on other platforms, but it would require a lot of reversing of libAppleArchive which is above my skill level for now...
+The main reasons why I wanted to look into shortcuts signing was to get embed-ables to work on-device again somehow, without the need of a Mac, but another big reason was wanting to figure out some way to replicate the signing process on other non-apple platforms, mostly *nix based such as Linux and FreeBSD. Unfortunately, signed shortcuts are made with Apple's closed source, proprietary, and also extremely undocumented and mysterious **Apple Encrypted Archive**. They're also compressed with LZFSE, which while is more documented than AEA, is still also something that I don't know much about. With that being said, it is definitely possible to, with a painful amount of effort, make a tool that contact signs shortcuts on other platforms, but it would require a lot of reversing of libAppleArchive which is above my skill level for now...
 
 With that being said, another barrier until recently was WorkflowKit, the private framework that provides the main backend behind the Shortcuts app iOS 13+ (technically iirc it was added in iOS 12 but barely did anything back then, although the embedded into app framework WorkflowAppKit does seem to have some similarities to what would become WorkflowKit). The shortcuts CLI tool on macOS is basically just a wrapper around WorkflowKit methods which had the actual code for signing shortcuts. Since WorkflowKit is obviously closed source and only available on Apple platforms, you can't really use its methods in a Linux binary. That, however, has recently changed; about a year ago I began my first ever serious reverse engineering effort, the WorkflowKit decompilation. While I have also touched around some other parts of WorkflowKit, I have been especially focused upon signing specifically. It was pretty awful initially, there are still some methods in the WorkflowKit decompilation that I haven't retouched upon in months that are pretty awful and I really had no idea what I was doing at the time, but over time my skills improved and my decompilation improved as well. I think the biggest achievement I was proud of was a few months back, when I finalized the first big method relating to signing, `WFShortcutPackageFile`'s `preformShortcutDataExtractionWithCompletion:`. Upon hooking the original function with the decomp in Simulator, I was surprised to see it actually work fully. (Well OK, there is still an issue with shortcuts not being able to import it due to a weird invalid Source error, but it's pretty much 99% accurate everywhere else, I have checked the temp directory and it does correctly extract the unsigned shortcut, and whenever I purposely trigger errors it seems to fail in the same spots that the regular method does). That method is what extracts contact signed shortcuts you import into unsigned shortcuts, as well as calls the validation methods that make sure it's signed. That gave me motivation to look back at many of my bad failed attempts at decompiling some methods and redo them into great versions. I have now pretty much decompiled almost every method WorkflowKit has that relates to contact signed shortcuts, as well as made many great discoveries about how they work. With my knowledge, I have made a MIT open source library that uses libAppleArchive as well as Security to sign shortcuts **without the use of WorkflowKit**. It's called libshortcutsign, and while it's still primitive at the moment does allows you to verify contact signed shortcuts, sign contact signed shortcuts with the private key and the auth data, extract auth data from a contact signed shortcut, and extract the unsigned shortcut from a signed shortcut. You can find it here: [https://github.com/0xilis/libshortcutsign](https://github.com/0xilis/libshortcutsign). While it does only work on non-apple platforms due to it using libAppleArchive and Security (with the exception of auth_data_from_shortcut, currently the only function that is libAppleArchive-less), since it technically doesn't use any private frameworks, I guess I have achieved something: If, for whatever reason, you want to mess with contact signed shortcuts in an App Store app, then this allows you to without using any private frameworks (albeit you would need to have the user dump their Apple ID identity certificates on their Mac, which I'm not completely sure would be compliant...).
 
-To see the exact process of how contact signed shortcuts are signed, check `WFP2PSignedShortcutFileExporter`'s `exportWorkflowWithCompletion`. For importing, you can check `WFShortcutExtractor`'s `extractShortcutFile`, but the main method relating to contact signed importing you should focus on is `WFShortcutPackageFile`'s `preformShortcutDataExtractionWithCompletion `. Feel free to check on libshortcutsign as well. If you have any questions regarding shortcut contact signing, feel free to ask me and I'll *try* to provide you with my best answer. With that being said, let's finally talk about signing.
+To see the exact process of how contact signed shortcuts are signed, check `WFP2PSignedShortcutFileExporter`'s `exportWorkflowWithCompletion`. For importing, you can check `WFShortcutExtractor`'s `extractShortcutFile`, but the main method relating to contact signed importing you should focus on is `WFShortcutPackageFile`'s `preformShortcutDataExtractionWithCompletion `. Also, feel free to check on libshortcutsign as well. If you have any questions regarding shortcut contact signing, feel free to ask me and I'll *try* to provide you with my best answer. With that being said, let's finally talk about signing.
 
 ### Contact Signed Shortcuts
 
@@ -55,47 +53,144 @@ Boolean isVerified = SecKeyVerifySignature(publicKeyOfFirstCertificateInChain, k
 
 Next, it both verifies and gets the Apple ID Validation Record in one `SecCMSVerifyCopyDataAndAttributes` call. It must match the `SecPolicyCreateAppleIDValidationRecordSigningPolicy` policy. After that, it then validates the trust via `SecTrustEvaluateAsync`, and also checks the `Version` key in the validation record to make sure it's 100 or below. (Note: trust evaluation is not implemented by libshortcutsign yet)
 
-The next step of validation is `validateAppleIDCertificatesWithError`, which is called by `validateWithCompletion`. This checks the policy and trust of the certificates. Here's the code, not including logs or return errors:
+The next step of validation is `validateAppleIDCertificatesWithError`, which is called by `validateWithCompletion`. `validateWithCompletion` is used to check validity of both contact signed and icloud signed certificates. Here's the code:
 
 ```objc
+/* Please thank me, 0xilis, for decompiling this for you all so none of you have to look at raw assembly. */
+-(void)validateWithCompletion:(void(^)(BOOL success, int options, NSString * _Nullable icId, NSError *validationError))comp {
+    WFSecurityLog("Start validating Shortcut Signing Context");
+    NSArray *appleIDCertificateChain = [self appleIDCertificateChain];
+    if (appleIDCertificateChain) {
+        NSError *err = nil;
+        BOOL result = [self validateAppleIDCertificatesWithError:&err];
+        if (!result) {
+            comp(result, 0, nil, err);
+            return;
+        }
+        SFAppleIDValidationRecord *appleIDValidationRecord = [self appleIDValidationRecord];
+        if (!appleIDValidationRecord) {
+            /* error */
+            comp(NO, 0, nil, [NSError errorWithDomain:@"WFWorkflowErrorDomain" code:0x5 userInfo:@{
+                NSLocalizedDescriptionKey : WFLocalizedString(@"This shortcut file data is corrupted"),
+            }]);
+            return;
+        }
+        [self validateAppleIDValidationRecordWithCompletion:comp];
+        return;
+    } else {
+        NSString *icloudId = nil;
+        NSError *err = nil;
+        BOOL result = [self validateSigningCertificateChainWithICloudIdentifier:&icloudId error:&err];
+        comp(result, 1, icloudId, err);
+    }
+}
+```
+This checks the policy and trust of the certificates. Here's the code, not including logs or return errors:
+
+```objc
+/* Please thank me, 0xilis, for decompiling this for you all so none of you have to look at raw assembly. */
+static __attribute__((always_inline)) BOOL WFAppleIDVerifyCertificateChain(NSArray *certificates) {
+    /* TODO: While logs are implemented, NSErrors are not implemented ATM. */
+    SecPolicyRef policy = SecPolicyCreateAppleIDAuthorityPolicy();
+    SecPolicySetOptionsValue(policy,kSecPolicyCheckTemporalValidity,kCFBooleanFalse);
+    if (policy) {
+        SecTrustRef trust;
+        OSStatus res = SecTrustCreateWithCertificates((__bridge CFArrayRef)certificates, policy, &trust);
+        if (res == 0) {
+            if (trust) {
+                CFErrorRef trustErr;
+                if (SecTrustEvaluateWithError(trust, &trustErr) == 0) {
+                    CFErrorDomain domain = CFErrorGetDomain(trustErr);
+                    if (CFEqual(domain, NSOSStatusErrorDomain)) {
+                        if (CFErrorGetCode(trustErr) == errSecCertificateExpired) {
+                            /* cert is valid if we reached here */
+                            return YES;
+                        } else {
+                            WFSecurityErrorF("Signed Shortcut File Apple ID Certificate Chain Verification: SecTrustEvaluateWithError failed with error %@",trustErr);
+                        }
+                    } else {
+                        WFSecurityErrorF("Signed Shortcut File Apple ID Certificate Chain Verification: SecTrustEvaluateWithError failed with error %@",trustErr);
+                    }
+                } else {
+                    /* cert is valid if we reached here */
+                    return YES;
+                }
+            } else {
+                WFSecurityError("Signed Shortcut File Apple ID Certificate Chain Verification: SecTrustCreateWithCertificates returned NULL trust");
+            }
+        } else {
+            WFSecurityErrorF("Signed Shortcut File Apple ID Certificate Chain Verification: SecTrustCreateWithCertificates failed with error %d",res);
+        }
+    } else {
+        WFSecurityError("Signed Shortcut File Apple ID Certificate Chain Verification: SecPolicyCreateAppleIDAuthorityPolicy failed");
+    }
+    return NO;
+}
+/* Please thank me, 0xilis, for decompiling this for you all so none of you have to look at raw assembly. */
 -(BOOL)validateAppleIDCertificatesWithError:(NSError**)err {
+    /* TODO: While logs are implemented, NSErrors are not implemented ATM. */
+    WFSecurityLog("Validating AppleID Certificate Chain");
     NSArray <WFShortcutSigningCertificate *>* signingCertificateChain = [self appleIDCertificateChain];
     /* if_map is from IntentsFoundation.framework */
     NSArray* certificates = [signingCertificateChain if_map:^(WFShortcutSigningCertificate *item){
       [item certificate]; //WFShortcutSigningCertificate
     }];
+    BOOL validCertificates = NO;
     if (certificates) {
-        SecPolicyRef policy = SecPolicyCreateAppleIDAuthorityPolicy();
-        SecPolicySetOptionsValue(policy,kSecPolicyCheckTemporalValidity,kCFBooleanFalse);
-        if (policy) {
-            SecTrustRef trust;
-            OSStatus res = SecTrustCreateWithCertificates((__bridge CFArrayRef)certificates, policy, &trust);
-            if (res == 0) {
-                if (trust) {
-                    CFErrorRef trustErr;
-                    if (SecTrustEvaluateWithError(trust, &trustErr) == 0) {
-                        CFErrorDomain domain = CFErrorGetDomain(trustErr);
-                        if (CFEqual(domain, NSOSStatusErrorDomain)) {
-                            if (CFErrorGetCode(trustErr) == errSecCertificateExpired) {
-                                /* cert is valid if we reached here */
-                                return YES;
-                            }
-                        }
-                    } else {
-                        /* cert is valid if we reached here */
-                        return YES;
-                    }
-                }
-            }
-        }
+        validCertificates = WFAppleIDVerifyCertificateChain(certificates);
     }
-    return NO;
+    if (validCertificates) {
+        WFSecurityLog("Shortcut AppleID Certificate Chain Validated Successfully");
+    } else {
+        /*
+         WFSecurityErrorF("Failed to Evaluate AppleID Certificate Chain: %@",verifyErr);
+         */
+    }
+    return validCertificates;
 }
 ```
 
 As you can see, one notable thing about it is that even if the certificate expired, Shortcuts will allow it anyway.
 
 The final step of contact-signed validation is just checking the Apple ID Validation Record and seeing if the AltDSID matches the users, or if it doesn't and private sharing is enabled, check the SHA256 email and phone number hashes listed to see if they match with anyone in your contacts. Unsigncuts is a tweak I made forever ago that has a option that disables email/phone hash checking for importing a contact signed shortcut even if they weren't in your contacts, for example.
+
+Code:
+
+```objc
+/* Please thank me, 0xilis, for decompiling this for you all so none of you have to look at raw assembly. */
+-(void)validateAppleIDValidationRecordWithCompletion:(void(^)(BOOL success, int options, NSString * _Nullable icId, NSError *validationError))comp {
+    WFSecurityLog("Validating AppleID Validation Record");
+    SFAppleIDClient *client = [[SFAppleIDClient alloc]init];
+    SFAppleIDAccount *account = [client myAccountWithError:nil];
+    NSString *userDSID = [account altDSID];
+    if ([userDSID isEqualToString:[[self appleIDValidationRecord]altDSID]]) {
+        /* Shared by the user themselves, allow import */
+        WFSecurityLog("Found the current user's AppleID Validation Record");
+        comp(1, 3, 0, 0);
+    } else {
+        if ([WFSharingSettings isPrivateSharingEnabled]) {
+            NSString *emailHashString = WFCombinedHashStringFromArray([[self appleIDValidationRecord] validatedEmailHashes]);
+            NSString *phoneHashString = WFCombinedHashStringFromArray([[self appleIDValidationRecord] validatedPhoneHashes]);
+            SFClient *sfclient = [[SFClient alloc]init];
+            [sfclient contactIDForEmailHash:emailHashString phoneHash:phoneHashString completion:^(BOOL success){
+                NSError *err = nil;
+                if (success) {
+                    WFSecurityLog("Found contact matching with AppleID Validation Record");
+                } else {
+                    err = [NSError errorWithDomain:@"WFWorkflowErrorDomain" code:0x5 userInfo:@{
+                        NSLocalizedDescriptionKey : WFLocalizedString(@"This shortcut cannot be opened because it was shared by someone who is not in your contacts."),
+                    }];
+                    WFSecurityLog("Contact with matching AppleID Validation Record Couldn't be found");
+                }
+                comp(success, 2, 0, err);
+            }];
+        } else {
+            WFSecurityLog("Skipping AppleID Validation Record due to Private Sharing Disabled");
+            comp(0, 2, 0, [WFSharingSettings privateSharingDisabledErrorWithShortcutName:nil]);
+        }
+    }
+}
+```
 
 But wait... **if the auth data really only verifies the public key, can't we just copy over the auth data from a contact signed shortcut shared by someone else?**
 
@@ -129,6 +224,57 @@ However, another similar vuln was found also by someone on reddit, though this t
 
 Maybe in the future, another bypass akin to this will be found. However, to my knowledge, all of these type of bypasses were only ever found (publicly) in the developer betas for macOS 12.0 / iOS 15.0. I should mention that I at least (don't believe) that the WFDefaultShortcuts are signed, but those are just hardcoded iCloud links in WorkflowKit.framework, so I don't think that really brings any bad news.
 
+### (EDIT/Update): iCloud Signing Validation
+
+Hey, remember when I said that iCloud signing's validation skips the contextWithAuthData method and reserves the entirety of validation to be inside of a method that's called in validateWithCompletion? Well, I finally got around to reversing that validation method. One noticable difference here from contact signed shortcuts is that certificates can actually expire / revoke here. Unfortunately, in all honesty, I don't really understand much of it; like, I know that it checks if the certification has been revoked via CRL / OSCP, but I have no clue what the extension OID does... if anyone does, please tell me.
+
+```objc
+/* Please thank me, 0xilis, for decompiling this for you all so none of you have to look at raw assembly. */
+-(BOOL)validateSigningCertificateChainWithICloudIdentifier:(NSString **)iCloudId error:(NSError **)err {
+    /* TODO: Implement errs (really just WFShortcutSigningContextSigningCertificateChainFailureError() ) */
+    WFSecurityLog("Validating Shortcut Signing Certificate Chain");
+    NSArray <WFShortcutSigningCertificate *>* signingCertificateChain = [self signingCertificateChain];
+    /* if_map is from IntentsFoundation.framework */
+    NSArray* certificates = [signingCertificateChain if_map:^(WFShortcutSigningCertificate *item){
+      [item certificate]; //WFShortcutSigningCertificate
+    }];
+    SecPolicyRef policy = SecPolicyCreateRevocation(kSecRevocationUseAnyAvailableMethod);
+    SecTrustRef trust = 0;
+    OSStatus res = SecTrustCreateWithCertificates((__bridge CFArrayRef)certificates, policy, &trust);
+    if (res == 0 || (res != 0 && !trust)) {
+        SecCertificateRef root = (__bridge SecCertificateRef)(certificates[0]);
+        if (iCloudId) {
+            CFStringRef rootCertName = 0;
+            SecCertificateCopyCommonName(root, &rootCertName);
+            *iCloudId = (__bridge NSString *)rootCertName;
+        }
+        CFErrorRef evaluateErr = 0;
+        bool isValid = SecTrustEvaluateWithError(trust, &evaluateErr);
+        if (isValid) {
+            if (SecCertificateCopyExtensionValue(root, @"1.2.840.113635.100.18.1", 0)) {
+                WFSecurityInfo("Shortcut Signing Certificate Chain Validated Successfully");
+                return YES;
+            } else {
+                WFSecurityErrorF("Unrecognized Shortcut Signing Certificate: %@",root);
+            }
+        } else {
+            WFSecurityErrorF("Failed to Evaluate Shortcut Signing Certificate Chain: %@",certificates);
+        }
+    } else {
+        WFSecurityErrorF("Validating Shortcut Signing Certificate Chain Failed: %@",certificates)
+    }
+    return NO;
+}
+```
+
+I asked a friend who's much more knowledgable about iOS security stuff who does some kernel programming and research, so I figured I'd ask them if they know what it's for, and they told me it's something with the root certificate tree. I'm assuming there is no way here to generate your own certificate and have them in the signingCertificateChain field, with this method actually returning that they're valid; if there was, then you could just create your own certificate and since you'd know the private key, encrypt the shortcut with it. But I'm just going to assume Apple is much more smarter than that. (I just wish I had the knowledge of extension OIDs to actually test :P)
+
+# More Fun: Extracting Phone Numbers from Contact Signed Shortcut
+
+I'm... not exactly sure to call this a vuln. The OpenAirdop folks did, but Apple seems to have not.
+
+But basically: **Even though the phone numbers on contact signed shortcuts are SHA256 hashed, they are not salted.** Thus, one can easily extract a hash of a phone number from a shortcut, and look it up in a hash table. I would recommend salting the hashes with some other information in the Apple ID Validation Record to mitigate that issue.
+
 *TL:DR; Bring embed-ables officially, you cowards.*
 
-- Snoolie K / 0xilis
+- 0xilis
