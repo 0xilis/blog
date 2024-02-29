@@ -1,5 +1,7 @@
 # Reversing Contact Signed Shortcuts
 
+(This document will mainly focus on contact-signed shortcuts; it is a result of my reverse engineering accross months. For the unsigned shortcut format, I have old documentation here: [https://github.com/0xilis/blog/blob/main/shortcuts/fileformat.md](https://github.com/0xilis/blog/blob/main/shortcuts/fileformat.md). It's not written the best but covers basics.).
+
 ### Introduction
 
 About 2 years ago, I made a previous blog about the shortcuts file format. At the time, shortcuts were all unsigned plain plists (although some can also be binary plists).
